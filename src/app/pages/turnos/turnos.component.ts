@@ -1,14 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { toast } from 'ngx-sonner';
-import { IpcRendererEvent } from 'electron'; // Importa el tipo IpcRendererEvent
+import { IpcRendererEvent } from 'electron';
 
-// Declarar el namespace electron de acuerdo con contextBridge
-declare const electron: {
-  ipcRenderer: {
-    send: (channel: string, data: any) => void,
-    on: (channel: string, func: (event: IpcRendererEvent, ...args: any[]) => void) => void,
+declare global {
+  interface Window {
+    electron: {
+      ipcRenderer: {
+        send: (channel: string, data: any) => void,
+        on: (channel: string, func: (event: IpcRendererEvent, ...args: any[]) => void) => void,
+      };
+    }
   }
-};
+}
 
 @Component({
   selector: 'app-turnos',
@@ -29,11 +32,18 @@ export default class TurnosComponent implements OnInit {
     this.loadTurnsFromStorage();
     this.checkForReset();
 
-    electron.ipcRenderer.on('print-status', (event: IpcRendererEvent, status: string, message: string) => {
+    window.electron.ipcRenderer.on('print-status', (event: IpcRendererEvent, status: string, message: string) => {
       if (status === 'success') {
         toast.success('Ticket enviado a la impresora.');
       } else {
         toast.error(`No se pudo imprimir el ticket. ${message}`);
+      }
+    });
+
+    window.electron.ipcRenderer.on('pdf-generated', (event: IpcRendererEvent, pdfPath: string) => {
+      const confirmed = confirm('¿Deseas imprimir el ticket?');
+      if (confirmed) {
+        window.electron.ipcRenderer.send('print-ticket', pdfPath);
       }
     });
   }
@@ -46,21 +56,24 @@ export default class TurnosComponent implements OnInit {
   handleTurn(type: 'normal' | 'tercera') {
     const date = new Date().toLocaleDateString('es-EC');
     const secuencial = type === 'normal' ? `N${this.turnosNormal + 1}` : `E${this.turnosTercera + 1}`;
-    const turno = `
-  GADMM La Libertad
-  TURNO ${type === 'normal' ? 'NORMAL' : '3ERA EDAD'}
-  ${secuencial}
-  FECHA: ${date}
-  LA LIBERTAD
-    `.trim();
+
+    const turno = [
+      'GADMM La Libertad',
+      '',
+      `TURNO ${type === 'normal' ? 'NORMAL' : '3ERA EDAD'}`,
+      '',
+      secuencial,
+      '',
+      `FECHA: ${date}`,
+      '',
+      'LA LIBERTAD'
+    ].join('\n');
 
     this.turnosDelDia.push(turno);
     type === 'normal' ? this.turnosNormal++ : this.turnosTercera++;
     this.saveTurnsToStorage();
 
-    // Enviar datos para imprimir el ticket
-    this.printTicket(turno);
-
+    this.generatePDF(turno);
     toast.success('Turno generado correctamente');
   }
 
@@ -103,7 +116,7 @@ export default class TurnosComponent implements OnInit {
 
   printReport() {
     const password = window.prompt('Por favor, ingrese la contraseña para imprimir el informe:');
-    const correctPassword = '1234'; 
+    const correctPassword = '1234';
 
     if (password === correctPassword) {
       const report = `
@@ -125,23 +138,13 @@ ${this.turnosDelDia.join('\n\n')}
     }
   }
 
-  printTicket(content: string) {
+  generatePDF(content: string) {
     try {
-      console.log('Enviando contenido a imprimir:', content);
-      electron.ipcRenderer.send('print-ticket', content);
-  
-      // Escucha el estado de impresión (esto ya lo haces en ngOnInit, pero valida aquí)
-      electron.ipcRenderer.on('print-status', (event: any, status: string, message: string) => {
-        console.log(`Estado de impresión: ${status}, Mensaje: ${message}`);
-        if (status === 'success') {
-          toast.success('Ticket enviado a la impresora.');
-        } else {
-          toast.error(`No se pudo imprimir el ticket. ${message}`);
-        }
-      });
+      console.log('Generando PDF para previsualización:', content);
+      window.electron.ipcRenderer.send('generate-ticket', content);
     } catch (error) {
-      console.error('Error al enviar el ticket:', error);
-      toast.error('No se pudo imprimir el ticket.');
+      console.error('Error al generar el PDF:', error);
+      toast.error('No se pudo generar el PDF.');
     }
   }
 }

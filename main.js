@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const { execFile } = require('child_process');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const pdfToPrinter = require('pdf-to-printer');
+const fs = require('fs');
+const PDFDocument = require('pdfkit');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -8,13 +10,13 @@ function createWindow() {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true, // Habilitado para seguridad
-      enableRemoteModule: false, // Deshabilitado para seguridad
-      nodeIntegration: false, // Usando contextBridge
+      contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false,
     },
   });
 
-  win.loadURL('http://localhost:4200'); // O usa win.loadFile('dist/tu-proyecto/index.html'); si está construido
+  win.loadURL('http://localhost:4200');
 }
 
 app.whenReady().then(() => {
@@ -29,40 +31,47 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-ipcMain.on('print-ticket', (event, content) => {
+ipcMain.on('generate-ticket', async (event, content) => {
   try {
-    const printerName = 'Star TSP100 Cutter (TSP143)'; // Reemplaza con el nombre exacto de tu impresora
-    const scriptPath = "C:\\Users\\Administrador\\Desktop\\Pasantias\\turnos\\print.ps1"; // Ruta absoluta
+    // Crear un documento PDF con ajuste de tamaño de página adecuado para impresoras térmicas
+    const doc = new PDFDocument({ size: [200, 80 * 2.83465], margin: 8})
+    //const doc = new PDFDocument({ size: [80 * 2.83465, 200], margin: 10 }); // Tamaño ajustado para impresoras térmicas
+    const pdfPath = path.join(app.getPath('temp'), 'ticket.pdf');
+    const writeStream = fs.createWriteStream(pdfPath);
+    doc.pipe(writeStream);
 
-    console.log(`Script Path: ${scriptPath}`);
-    console.log(`Content to Print: ${content}`);
-
-    if (!content || typeof content !== 'string') {
-      const errorMessage = 'El contenido a imprimir está vacío o no es válido.';
-      console.error(errorMessage);
-      event.sender.send('print-status', 'error', errorMessage);
-      return;
-    }
-
-    execFile('powershell.exe', [
-      '-ExecutionPolicy', 'Bypass',
-      '-File', scriptPath,
-      '-printerName', printerName,
-      '-content', content
-    ], (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error al imprimir: ${error.message}`);
-        event.sender.send('print-status', 'error', `Error al imprimir: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-        event.sender.send('print-status', 'error', `stderr: ${stderr}`);
-        return;
-      }
-      console.log(`Impresión exitosa: ${stdout}`);
-      event.sender.send('print-status', 'success', `Impresión exitosa: ${stdout}`);
+    // Añadir contenido al PDF con ajuste de ancho
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(content, {
+      align: 'center',
+      width: 80 * 2.83465 - 20, // Ajustar el ancho del contenido restando el margen
     });
+    doc.end();
+
+    // Esperar a que el PDF se haya escrito en el sistema de archivos
+    writeStream.on('finish', async () => {
+      // Abrir el archivo PDF para previsualización
+      shell.openPath(pdfPath);
+      event.sender.send('pdf-generated', pdfPath);
+    });
+
+  } catch (error) {
+    console.error(`Error inesperado al generar el PDF: ${error.message}`);
+    event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
+  }
+});
+
+ipcMain.on('print-ticket', async (event, pdfPath) => {
+  try {
+    // Imprimir el archivo PDF
+    await pdfToPrinter.print(pdfPath);
+
+    console.log('Impresión exitosa');
+    event.sender.send('print-status', 'success', 'Impresión exitosa');
+
+    // Eliminar el archivo PDF temporal
+    fs.unlinkSync(pdfPath);
+
   } catch (error) {
     console.error(`Error inesperado al ejecutar impresión: ${error.message}`);
     event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
