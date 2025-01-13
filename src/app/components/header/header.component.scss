@@ -1,0 +1,7 @@
+nav a img {
+    border-radius: 50%; // Esto hace que la imagen sea circular
+    width: 50px; // Ajusta el tamaño según sea necesario
+    height: 50px; // Ajusta el tamaño según sea necesario
+    object-fit: cover; // Esto asegura que la imagen se ajuste bien dentro del círculo
+  }
+  

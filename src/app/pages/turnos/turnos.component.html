@@ -1,29 +1,24 @@
 <section class="bg-white dark:bg-gray-900">
-  <div class="py-6 px-4 mx-auto max-w-screen-xl lg:py-12 lg:px-6">
-    <!-- Encabezado del sistema -->
-    <div class="mx-auto max-w-screen-sm text-center lg:mb-12 mb-6">
-      <img src="/images/logo_horizontal.jpg" alt="Logo GADMM La Libertad" class="mx-auto mb-2 w-32">
-      <h2 class="mb-1 text-xl font-bold text-gray-900 dark:text-white">GADM LA LIBERTAD</h2>
-      <p class="font-light text-gray-500 dark:text-gray-400">SISTEMA INFORMÁTICO</p>
-      <p class="font-light text-xs text-gray-400 dark:text-gray-500">{{ currentDate }}</p>
-    </div>
+    <div class="py-6 px-4 mx-auto max-w-screen-xl lg:py-12 lg:px-6">
+      <!-- Encabezado del sistema -->
+      <div class="mx-auto max-w-screen-sm text-center lg:mb-12 mb-6">
+        <img src="/images/logo_horizontal.jpg" alt="Logo" class="logo">
+        <h2 class="mb-1 text-xl font-bold text-gray-900 dark:text-white">GADM LA LIBERTAD</h2>
+        <p class="font-light text-gray-500 dark:text-gray-400">GENERADOR DE TURNOS</p>
+        <p class="font-light text-xs text-gray-400 dark:text-gray-500">{{ currentDate }}</p>
+      </div>
 
     <!-- Contenido principal centrado y ancho ajustado -->
     <div class="flex justify-center items-center min-h-[50vh]">
-      <!-- Sección de botones con ancho ajustado -->
       <article class="p-6 bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700 lg:w-3/4">
         <h2 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gestión de Turnos</h2>
         <div class="grid grid-cols-2 gap-4">
-          <div
-            (click)="handleTurn('tercera')"
-            class="p-12 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 cursor-pointer text-center">
-            <h3 class="text-4xl font-bold">Turno 3era Edad</h3>
+          <div (click)="handleTurn('normal')" class="p-12 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 cursor-pointer text-center">
+            <h3 class="text-4xl font-bold">Turno Normal</h3>
             <p class="mt-2 text-3xl">Toque para generar turno</p>
           </div>
-          <div
-            (click)="handleTurn('normal')"
-            class="p-12 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 cursor-pointer text-center">
-            <h3 class="text-4xl font-bold">Turno Normal</h3>
+          <div (click)="handleTurn('tercera')" class="p-12 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 cursor-pointer text-center">
+            <h3 class="text-4xl font-bold">Turno 3era Edad</h3>
             <p class="mt-2 text-3xl">Toque para generar turno</p>
           </div>
         </div>
@@ -31,7 +26,7 @@
     </div>
 
     <!-- Conteo de turnos en la parte inferior -->
-    <div class="mt-8 py-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
+    <div class="mt-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
       <div class="flex justify-around text-center">
         <div>
           <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-400">Turnos Normales</h4>
@@ -41,11 +36,11 @@
           <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-400">Turnos 3era Edad</h4>
           <p class="text-lg font-bold text-gray-900 dark:text-white">{{ turnosTercera }}</p>
         </div>
-        <div>
+        <div class="flex gap-2">
           <button
-            (click)="printReport()"
-            class="py-2 px-4 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-md">
-            Imprimir Informe
+            (click)="saveReport()"
+            class="py-1 px-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md">
+            Guardar Informe
           </button>
         </div>
       </div>

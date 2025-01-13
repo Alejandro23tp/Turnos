@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const pdfToPrinter = require('pdf-to-printer');
 const fs = require('fs');
@@ -33,26 +33,36 @@ app.on('window-all-closed', () => {
 
 ipcMain.on('generate-ticket', async (event, content) => {
   try {
-    // Crear un documento PDF con ajuste de tamaño de página adecuado para impresoras térmicas
-    const doc = new PDFDocument({ size: [200, 80 * 2.83465], margin: 8})
-    //const doc = new PDFDocument({ size: [80 * 2.83465, 200], margin: 10 }); // Tamaño ajustado para impresoras térmicas
+    const width = 3.125 * 72;
+    const height = 230 * 72;
+
+    const doc = new PDFDocument({ size: [width, height], margin: 10 });
     const pdfPath = path.join(app.getPath('temp'), 'ticket.pdf');
     const writeStream = fs.createWriteStream(pdfPath);
     doc.pipe(writeStream);
 
-    // Añadir contenido al PDF con ajuste de ancho
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text(content, {
-      align: 'center',
-      width: 80 * 2.83465 - 20, // Ajustar el ancho del contenido restando el margen
+    const lines = content.split('\n');
+    lines.forEach(line => {
+      if (/N\d+|E\d+/.test(line)) {
+        doc.font('Helvetica-Bold').fontSize(28).text(line, {
+          align: 'center',
+          width: width - 20,
+        }).moveDown(0.5);
+      } else {
+        doc.font('Helvetica').fontSize(14).text(line, {
+          align: 'center',
+          width: width - 20,
+        }).moveDown(0.5);
+      }
     });
+
     doc.end();
 
-    // Esperar a que el PDF se haya escrito en el sistema de archivos
     writeStream.on('finish', async () => {
-      // Abrir el archivo PDF para previsualización
-      shell.openPath(pdfPath);
-      event.sender.send('pdf-generated', pdfPath);
+      await pdfToPrinter.print(pdfPath);
+      console.log('Impresión exitosa');
+      event.sender.send('print-status', 'success', 'Impresión exitosa');
+      fs.unlinkSync(pdfPath);
     });
 
   } catch (error) {
@@ -61,19 +71,5 @@ ipcMain.on('generate-ticket', async (event, content) => {
   }
 });
 
-ipcMain.on('print-ticket', async (event, pdfPath) => {
-  try {
-    // Imprimir el archivo PDF
-    await pdfToPrinter.print(pdfPath);
 
-    console.log('Impresión exitosa');
-    event.sender.send('print-status', 'success', 'Impresión exitosa');
 
-    // Eliminar el archivo PDF temporal
-    fs.unlinkSync(pdfPath);
-
-  } catch (error) {
-    console.error(`Error inesperado al ejecutar impresión: ${error.message}`);
-    event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
-  }
-});
