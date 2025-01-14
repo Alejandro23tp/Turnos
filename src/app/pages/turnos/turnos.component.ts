@@ -73,14 +73,14 @@ export default class TurnosComponent implements OnInit {
 
   handleTurn(type: 'normal' | 'tercera') {
     const date = new Date().toLocaleDateString('es-EC');
-    const secuencial = type === 'normal' ? `N${this.turnosNormal + 1}` : `E${this.turnosTercera + 1}`;
+    const secuencial = type === 'normal' ? `N${(this.turnosNormal + 1).toString().padStart(3, '0')}` : `E${(this.turnosTercera + 1).toString().padStart(3, '0')}`;
   
     const turno = `
       GADM LA LIBERTAD
       ----------------
       FECHA: ${date}
       ${type === 'normal' ? 'TURNO NORMAL' : 'TURNO 3ERA EDAD'}
-      N° ${secuencial}
+  ${secuencial}
       ${type === 'tercera' ? '=== PRIORIDAD ===' : ''}
       ----------------
     `;
@@ -91,7 +91,7 @@ export default class TurnosComponent implements OnInit {
   
     this.printTicket(turno);
     toast.success('Turno generado correctamente');
-}
+  }
   
 
   checkForReset() {

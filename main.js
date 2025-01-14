@@ -15,8 +15,9 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-
+  //win.loadURL('http://localhost:4200');
   win.loadURL('http://localhost/angular/dist/turnos/browser');
+  
 }
 
 app.whenReady().then(() => {
@@ -75,7 +76,7 @@ ipcMain.on('generate-ticket', async (event, content) => {
     const lines = content.split('\n');
     lines.forEach(line => {
       if (/N\d+|E\d+/.test(line)) {
-        doc.font('Helvetica-Bold').fontSize(28).text(line, {
+        doc.font('Helvetica-Bold').fontSize(50).text(line, {
           align: 'center',
           width: width - 20,
         }).moveDown(0.5);
@@ -101,6 +102,7 @@ ipcMain.on('generate-ticket', async (event, content) => {
     event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
   }
 });
+
 
 
 
