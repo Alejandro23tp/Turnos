@@ -3,6 +3,8 @@ import { toast } from 'ngx-sonner';
 import { IpcRendererEvent } from 'electron';
 import { MatDialog } from '@angular/material/dialog';
 import { PasswordDialogComponent } from '../../password-dialog/password-dialog.component';
+import * as path from 'path';
+import * as fs from 'fs';
 
 
 declare global {
@@ -27,6 +29,8 @@ export default class TurnosComponent implements OnInit {
   turnosDelDia: string[] = [];
   currentDate: string = '';
   lastResetDate: string = '';
+  currentTime: string = '';
+
 
   constructor(private dialog: MatDialog) {}
 
@@ -42,12 +46,30 @@ export default class TurnosComponent implements OnInit {
         toast.error(`No se pudo imprimir el ticket. ${message}`);
       }
     });
+
+    // Configura un temporizador para actualizar la hora cada segundo
+  setInterval(() => this.updateTime(), 1000);
+
+  window.electron.ipcRenderer.on('print-status', (event: IpcRendererEvent, status: string, message: string) => {
+    if (status === 'success') {
+      toast.success('Ticket enviado a la impresora.');
+    } else {
+      toast.error(`No se pudo imprimir el ticket. ${message}`);
+    }
+  });
   }
 
   updateDate() {
     const today = new Date();
     this.currentDate = today.toLocaleDateString('es-EC');
   }
+
+  updateTime() {
+    const now = new Date();
+    this.currentDate = now.toLocaleDateString('es-EC');
+    this.currentTime = now.toLocaleTimeString('es-EC');
+  }
+  
 
   handleTurn(type: 'normal' | 'tercera') {
     const date = new Date().toLocaleDateString('es-EC');
@@ -229,27 +251,51 @@ ${this.turnosDelDia.join('\n\n')}
   
 
   saveReport() {
-    const totalTurnos = this.turnosNormal + this.turnosTercera; // Sumar los turnos
+    const totalTurnos = this.turnosNormal + this.turnosTercera;
   
     const report = `
     Conteo de Turnos:
     Normales: ${this.turnosNormal}
     3era Edad: ${this.turnosTercera}
-    Total de Turnos: ${totalTurnos}  <!-- Mostrar el total de turnos -->
+    Total de Turnos: ${totalTurnos}
     
     Turnos Generados:
     ${this.turnosDelDia.join('\n\n')}
     `;
-    
-    // Crear el archivo y desencadenar la descarga
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `reporte_turnos_${new Date().toLocaleDateString('es-EC').replace(/\//g, '-')}.txt`;
-    link.click();
   
-    toast.success('Informe guardado exitosamente.');
+    window.electron.ipcRenderer.send('save-report', report);
+  
+    window.electron.ipcRenderer.on('save-report-status', (event, status, message) => {
+      if (status === 'success') {
+        console.log('Informe guardado en:', message);
+        toast.success('Informe guardado exitosamente.');
+      } else {
+        console.error('Error al guardar el informe:', message);
+        toast.error('No se pudo guardar el informe.');
+      }
+    });
   }
+  
+
+
+  ImprimirReporte() {
+    const totalTurnos = this.turnosNormal + this.turnosTercera; // Sumar los turnos
+    const date = new Date().toLocaleDateString('es-EC');
+  
+    const report = `
+  Conteo de Turnos:
+  Fecha: ${date}
+  Normales: ${this.turnosNormal}
+  3era Edad: ${this.turnosTercera}
+  Total de Turnos: ${totalTurnos}
+    `;
+  
+    // Enviar el reporte a la impresora en lugar de guardarlo como archivo
+    this.printTicket(report);
+    this.saveReport();
+    toast.success('Informe enviado a la impresora.');
+  }
+  
   
   
 }

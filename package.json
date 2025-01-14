@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "electron:build": "npm run build && electron .",
-    "electron:start": "electron ."
+    "electron:start": "electron .",
+    "electron:pack": "electron-packager . turnos --platform=win32 --arch=x64 --out=dist/ --overwrite"
+    
   },
   "main": "main.js",
   "private": true,
