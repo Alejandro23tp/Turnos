@@ -28,15 +28,16 @@ export default class TurnosComponent implements OnInit {
   ngOnInit() {
     this.updateDate();
     this.loadTurnsFromFile();
-    
+  
     window.electron.ipcRenderer.on('print-status', (event: IpcRendererEvent, status: string, message: string) => {
       if (status === 'success') {
-        toast.success('Ticket enviado a la impresora.');
+        //toast.success('Ticket enviado a la impresora.');
+        console.log('Ticket enviado a la impresora.');
       } else {
         toast.error(`No se pudo imprimir el ticket. ${message}`);
       }
     });
-
+  
     window.electron.ipcRenderer.on('load-report-status', (event: IpcRendererEvent, status: string, data: string) => {
       if (status === 'success') {
         this.processLoadedReport(data);
@@ -44,14 +45,15 @@ export default class TurnosComponent implements OnInit {
         toast.error('Error al cargar los datos del reporte.');
       }
     });
-
+  
     setInterval(() => this.updateTime(), 1000);
   }
+  
 
-  loadTurnsFromFile() {
+/*  loadTurnsFromFile() {
     window.electron.ipcRenderer.send('load-report', {});
   }
-
+*/
   processLoadedReport(reportContent: string) {
     try {
       // Extract turn counts
@@ -161,7 +163,7 @@ export default class TurnosComponent implements OnInit {
     ${this.turnosDelDia.join('\n\n')}
     `;
     this.printTicket(report);
-    toast.success('Informe enviado a la impresora.');
+    //toast.success('Informe enviado a la impresora.');
   }
 
   printTicket(content: string) {
@@ -169,6 +171,17 @@ export default class TurnosComponent implements OnInit {
       console.log('Enviando contenido a imprimir:', content);
       const cleanedContent = content.replace(/<\/?[^>]+(>|$)/g, "");
       window.electron.ipcRenderer.send('generate-ticket', cleanedContent);
+    } catch (error) {
+      console.error('Error al enviar el ticket:', error);
+      toast.error('No se pudo imprimir el ticket.');
+    }
+  }
+
+  printTicketforReport(content: string) {
+    try {
+      console.log('Enviando contenido a imprimir:', content);
+      const cleanedContent = content.replace(/<\/?[^>]+(>|$)/g, "");
+      window.electron.ipcRenderer.send('generate-ticket-for-report', cleanedContent);
     } catch (error) {
       console.error('Error al enviar el ticket:', error);
       toast.error('No se pudo imprimir el ticket.');
@@ -202,7 +215,21 @@ export default class TurnosComponent implements OnInit {
     Total de Turnos: ${totalTurnos}
     `;
   
-    this.printTicket(report);
-    toast.success('Informe enviado a la impresora.');
+    this.printTicketforReport(report);
+    toast.success('Reporte generado con éxito');
+    //toast.success('Informe enviado a la impresora.');
   }
+
+  loadTurnsFromFile() {
+  const today = new Date().toLocaleDateString('es-EC').replace(/\//g, '_');
+  const storedDate = localStorage.getItem('lastTurnDate');
+
+  if (storedDate === today) {
+    window.electron.ipcRenderer.send('load-report', {});
+  } else {
+    this.resetTurns();
+    localStorage.setItem('lastTurnDate', today);
+  }
+}
+
 }

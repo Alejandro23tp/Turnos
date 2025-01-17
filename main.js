@@ -41,17 +41,16 @@ app.on('window-all-closed', () => {
 ipcMain.on('save-report', async (event, content) => {
   try {
     const documentsPath = app.getPath('documents');
-    const reportFileName = 'reporte_turnos.txt';
+    const today = new Date().toLocaleDateString('es-EC').replace(/\//g, '_');
+    const reportFileName = `reporte_turnos_${today}.txt`;
     const reportFilePath = path.join(documentsPath, reportFileName);
-    const today = new Date().toLocaleDateString('es-EC');
-    let reportHeader = `\n\nFecha: ${today}\n--------------------------\n`;
 
     let fileExists = fs.existsSync(reportFilePath);
     if (!fileExists) {
       fs.writeFileSync(reportFilePath, 'Reporte de Turnos\n=================\n');
     }
 
-    fs.writeFileSync(reportFilePath, reportHeader + content); // Sobrescribir en lugar de append
+    fs.writeFileSync(reportFilePath, content); // Sobrescribir en lugar de append
     console.log(`Informe actualizado en: ${reportFilePath}`);
     event.sender.send('save-report-status', 'success', `Informe actualizado exitosamente en: ${reportFilePath}`);
   } catch (error) {
@@ -64,7 +63,8 @@ ipcMain.on('save-report', async (event, content) => {
 ipcMain.on('load-report', (event) => {
   try {
     const documentsPath = app.getPath('documents');
-    const reportFileName = 'reporte_turnos.txt';
+    const today = new Date().toLocaleDateString('es-EC').replace(/\//g, '_');
+    const reportFileName = `reporte_turnos_${today}.txt`;
     const reportFilePath = path.join(documentsPath, reportFileName);
 
     if (fs.existsSync(reportFilePath)) {
@@ -118,3 +118,41 @@ ipcMain.on('generate-ticket', async (event, content) => {
     event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
   }
 });
+
+ipcMain.on('generate-ticket-for-report', async (event, content) => {
+  try {
+    const width = 3.125 * 72;
+    const height = 230 * 72;
+    const doc = new PDFDocument({ size: [width, height], margin: 10 });
+    const pdfPath = path.join(app.getPath('temp'), 'ticket_for_report.pdf');
+    const writeStream = fs.createWriteStream(pdfPath);
+    doc.pipe(writeStream);
+
+    const lines = content.split('\n');
+    lines.forEach(line => {
+      if (/Normales: \d+|3era Edad: \d+|Total de Turnos: \d+/.test(line)) {
+        doc.font('Helvetica').fontSize(20).text(line, {
+          align: 'center',
+          width: width - 20,
+        }).moveDown(0.5);
+      } else {
+        doc.font('Helvetica-Bold').fontSize(20).text(line, {
+          align: 'center',
+          width: width - 20,
+        }).moveDown(0.5);
+      }
+    });
+
+    doc.end();
+    writeStream.on('finish', async () => {
+      await pdfToPrinter.print(pdfPath);
+      console.log('Impresión de reporte exitosa');
+      event.sender.send('print-status', 'success', 'Impresión de reporte exitosa');
+      fs.unlinkSync(pdfPath);
+    });
+  } catch (error) {
+    console.error(`Error inesperado al generar el PDF: ${error.message}`);
+    event.sender.send('print-status', 'error', `Error inesperado: ${error.message}`);
+  }
+});
+
