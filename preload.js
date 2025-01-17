@@ -1,14 +1,21 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld(
-  'electron',
-  {
-    ipcRenderer: {
-      send: (channel, data) => ipcRenderer.send(channel, data),
-      on: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(event, ...args))
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    send: (channel, data) => {
+      const validChannels = ['generate-ticket', 'save-report', 'load-report'];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.send(channel, data);
+      }
+    },
+    on: (channel, func) => {
+      const validChannels = ['print-status', 'save-report-status', 'load-report-status'];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
+      }
     }
   }
-);
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
