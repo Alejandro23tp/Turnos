@@ -22,8 +22,8 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-  win.loadURL('http://localhost:4200');
-  //win.loadURL('http://localhost/angular/dist/turnos/browser');
+  //win.loadURL('http://localhost:4200');
+  win.loadURL('http://localhost/angular/dist/turnos/browser');
 }
 
 app.whenReady().then(() => {

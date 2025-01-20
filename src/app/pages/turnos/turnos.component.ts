@@ -119,7 +119,7 @@ export default class TurnosComponent implements OnInit {
       ----------------
       FECHA: ${date}
       ${type === 'normal' ? 'TURNO NORMAL' : 'TURNO 3ERA EDAD'}
-      ${secuencial}
+  ${secuencial}
       ${type === 'tercera' ? '=== PRIORIDAD ===' : ''}
       ----------------
     `;
