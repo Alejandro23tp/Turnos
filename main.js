@@ -22,7 +22,7 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-  //win.loadURL('http://localhost:4200');
+  /*win.loadURL('http://localhost:4200');*/
   win.loadURL('http://localhost/angular/dist/turnos/browser');
 }
 
@@ -156,3 +156,55 @@ ipcMain.on('generate-ticket-for-report', async (event, content) => {
   }
 });
 
+// Handler for saving total daily turns in a monthly file
+ipcMain.on('save-total-turns', async (event, totalTurns) => {
+  try {
+    const documentsPath = app.getPath('documents');
+    const now = new Date();
+    const monthName = now.toLocaleString('es-EC', { month: 'long' });
+    const year = now.getFullYear();
+    const today = now.toLocaleDateString('es-EC').replace(/\//g, '_');
+    const totalFileName = `Total_Mes_${monthName}_${year}.txt`;
+    const totalFilePath = path.join(documentsPath, totalFileName);
+
+    let existingContent = '';
+    let monthTotal = 0;
+    let dailyTotals = {};
+
+    // Check if the file exists and read its content
+    if (fs.existsSync(totalFilePath)) {
+      existingContent = fs.readFileSync(totalFilePath, 'utf8');
+      const lines = existingContent.split('\n');
+
+      // Extract the existing month total and daily totals
+      for (const line of lines) {
+        if (line.startsWith('Total Mes:')) {
+          monthTotal = parseInt(line.split(': ')[1], 10);
+        } else if (line.includes(': ')) {
+          const [date, total] = line.split(': ');
+          dailyTotals[date] = parseInt(total, 10);
+        }
+      }
+    }
+
+    // Update the daily total for the current day
+    dailyTotals[today] = totalTurns;
+
+    // Recalculate the month total
+    monthTotal = Object.values(dailyTotals).reduce((sum, dailyTotal) => sum + dailyTotal, 0);
+
+    // Construct the new content
+    let newContent = `Total Mes: ${monthTotal}\n`;
+    for (const [date, total] of Object.entries(dailyTotals)) {
+      newContent += `${date}: ${total}\n`;
+    }
+
+    // Write the updated content to the file
+    fs.writeFileSync(totalFilePath, newContent);
+    console.log(`Total de turnos guardado en: ${totalFilePath}`);
+    event.sender.send('save-total-turns-status', 'success', `Total de turnos guardado en: ${totalFilePath}`);
+  } catch (error) {
+    console.error(`Error al guardar el total de turnos: ${error.message}`);
+    event.sender.send('save-total-turns-status', 'error', `Error inesperado: ${error.message}`);
+  }
+});

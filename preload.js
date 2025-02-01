@@ -3,13 +3,13 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
     send: (channel, data) => {
-      const validChannels = ['generate-ticket', 'save-report', 'load-report','generate-ticket-for-report'];
+      const validChannels = ['generate-ticket', 'save-report', 'load-report','generate-ticket-for-report','save-total-turns'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }
     },
     on: (channel, func) => {
-      const validChannels = ['print-status', 'save-report-status', 'load-report-status'];
+      const validChannels = ['print-status', 'save-report-status', 'load-report-status','save-total-turns-status'];
       if (validChannels.includes(channel)) {
         ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
       }

@@ -31,7 +31,6 @@ export default class TurnosComponent implements OnInit {
   
     window.electron.ipcRenderer.on('print-status', (event: IpcRendererEvent, status: string, message: string) => {
       if (status === 'success') {
-        //toast.success('Ticket enviado a la impresora.');
         console.log('Ticket enviado a la impresora.');
       } else {
         toast.error(`No se pudo imprimir el ticket. ${message}`);
@@ -47,7 +46,24 @@ export default class TurnosComponent implements OnInit {
     });
   
     setInterval(() => this.updateTime(), 1000);
+  
+    let currentMonth = new Date().getMonth();
+    setInterval(() => {
+      const now = new Date();
+      const newMonth = now.getMonth();
+      if (newMonth !== currentMonth) {
+        this.turnosNormal = 0;
+        this.turnosTercera = 0;
+        this.turnosDelDia = [];
+        this.saveDailyTotalTurns();
+  
+        // Reset currentMonth to new month
+        currentMonth = newMonth;
+      }
+    }, 24 * 60 * 60 * 1000); // Check daily
   }
+  
+  
   
 
 /*  loadTurnsFromFile() {
@@ -129,6 +145,8 @@ export default class TurnosComponent implements OnInit {
     this.saveReport();
     this.printTicket(turno);
     toast.success('Turno generado correctamente');
+
+    this.saveDailyTotalTurns();
   }
 
   resetTurns() {
@@ -231,5 +249,11 @@ export default class TurnosComponent implements OnInit {
     localStorage.setItem('lastTurnDate', today);
   }
 }
+
+saveDailyTotalTurns() {
+  const totalTurns = this.turnosNormal + this.turnosTercera;
+  window.electron.ipcRenderer.send('save-total-turns', totalTurns);
+}
+
 
 }
